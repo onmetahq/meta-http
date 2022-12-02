@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/krishnateja262/meta-http/models"
+	"github.com/onmetahq/meta-http/pkg/models"
 )
 
 func FetchHeadersFromContext(ctx context.Context) map[string]string {

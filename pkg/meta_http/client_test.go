@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/go-kit/log"
-	metahttp "github.com/krishnateja262/meta-http/meta_http"
+	metahttp "github.com/onmetahq/meta-http/pkg/meta_http"
 )
 
 func TestMetaHTTPClient(t *testing.T) {
