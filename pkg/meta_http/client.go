@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
-	"github.com/krishnateja262/meta-http/utils"
+	"github.com/onmetahq/meta-http/pkg/utils"
 )
 
 type Client struct {
