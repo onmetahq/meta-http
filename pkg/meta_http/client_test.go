@@ -152,32 +152,3 @@ func TestHeadersContext(t *testing.T) {
 	}
 	t.Log(resp.Status)
 }
-
-func TestMetaHTTPClient404(t *testing.T) {
-	responseBody := "{\"Goodbye\":\"World\"}"
-	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.Write([]byte(responseBody))
-	}))
-	defer server.Close()
-
-	logger := log.NewJSONLogger(os.Stderr)
-	logger = log.NewSyncLogger(logger)
-
-	metaHttpClient := metahttp.NewClient("http://onmeta.in/hwiejwre", logger, 10*time.Second)
-	req := struct {
-		Hello string
-	}{
-		Hello: "world",
-	}
-	var res struct {
-		Goodbye string
-	}
-	resp, err := metaHttpClient.Post(context.Background(), "/test", map[string]string{}, req, &res)
-	if err != nil {
-		t.Error(err.Error())
-	}
-	if res.Goodbye != "World" {
-		t.Error("Response body is not as expected")
-	}
-	t.Log(resp.Status)
-}
