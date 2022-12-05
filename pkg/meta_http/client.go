@@ -83,7 +83,7 @@ func (c *Client) sendRequest(req *http.Request, v interface{}) (*models.Response
 	response := models.ResponseData{}
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return &response, err
+		return nil, err
 	}
 
 	response.Header = res.Header
@@ -96,18 +96,22 @@ func (c *Client) sendRequest(req *http.Request, v interface{}) (*models.Response
 		errRes := HttpClientErrorResponse{}
 		errRes.StatusCode = res.StatusCode
 		if err = json.NewDecoder(res.Body).Decode(&errRes); err == nil {
-			return &response, &errRes
+			return nil, &errRes
 		}
 
 		errRes.Err = ErrorInfo{
 			Message: fmt.Sprintf("unknown error, status code: %d", res.StatusCode),
 		}
-		return &response, &errRes
+		return nil, &errRes
 	}
 
 	if err = json.NewDecoder(res.Body).Decode(&v); err != nil {
 		fmt.Println(err)
-		return &response, err
+		errRes := HttpClientErrorResponse{}
+		errRes.Success = false
+		errRes.StatusCode = http.StatusInternalServerError
+		errRes.Err.Message = err.Error()
+		return &response, &errRes
 	}
 	return &response, nil
 }
@@ -134,10 +138,9 @@ func generateUrl(basePath string, relativePath string) string {
 }
 
 func (c *Client) Get(ctx context.Context, path string, headers map[string]string, v interface{}) (*models.ResponseData, error) {
-	response := models.ResponseData{}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, generateUrl(c.BaseURL, path), nil)
 	if err != nil {
-		return &response, err
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("Accept", "application/json; charset=utf-8")
@@ -157,21 +160,20 @@ func (c *Client) Get(ctx context.Context, path string, headers map[string]string
 
 	resp, err := c.sendRequest(req, v)
 	if err != nil {
-		return &response, err
+		return nil, err
 	}
 
 	return resp, nil
 }
 
 func (c *Client) Post(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) (*models.ResponseData, error) {
-	response := models.ResponseData{}
 	postBody, err := json.Marshal(v)
 	if err != nil {
-		return &response, err
+		return nil, err
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, generateUrl(c.BaseURL, path), bytes.NewBuffer(postBody))
 	if err != nil {
-		return &response, err
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("Accept", "application/json; charset=utf-8")
@@ -191,21 +193,20 @@ func (c *Client) Post(ctx context.Context, path string, headers map[string]strin
 
 	resp, err := c.sendRequest(req, res)
 	if err != nil {
-		return &response, err
+		return nil, err
 	}
 
 	return resp, nil
 }
 
 func (c *Client) Put(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) (*models.ResponseData, error) {
-	response := models.ResponseData{}
 	postBody, err := json.Marshal(v)
 	if err != nil {
-		return &response, err
+		return nil, err
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, generateUrl(c.BaseURL, path), bytes.NewBuffer(postBody))
 	if err != nil {
-		return &response, err
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("Accept", "application/json; charset=utf-8")
@@ -225,7 +226,7 @@ func (c *Client) Put(ctx context.Context, path string, headers map[string]string
 
 	resp, err := c.sendRequest(req, res)
 	if err != nil {
-		return &response, err
+		return nil, err
 	}
 
 	return resp, nil
