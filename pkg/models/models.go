@@ -1,5 +1,7 @@
 package models
 
+import "net/http"
+
 type contextKey string
 
 const (
@@ -12,3 +14,9 @@ const (
 )
 
 var ContextKeys = []contextKey{UserID, TenantID, RequestID, MerchantAPIKey, APIContextKey, AuthorizationKey}
+
+type ResponseData struct {
+	Status     string // e.g. "200 OK"
+	StatusCode int    // e.g. 200
+	Header     http.Header
+}
