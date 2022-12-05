@@ -79,11 +79,10 @@ func (hce *HttpClientErrorResponse) Error() string {
 	return fmt.Sprintf("StatusCode: %d, ErrorCode: %d, Message: %s", hce.StatusCode, hce.Err.Code, hce.Err.Message)
 }
 
-func (c *Client) sendRequest(req *http.Request, v interface{}) error {
-
+func (c *Client) sendRequest(req *http.Request, v interface{}) (*http.Response, error) {
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return err
+		return res, err
 	}
 
 	defer res.Body.Close()
@@ -92,21 +91,20 @@ func (c *Client) sendRequest(req *http.Request, v interface{}) error {
 		errRes := HttpClientErrorResponse{}
 		errRes.StatusCode = res.StatusCode
 		if err = json.NewDecoder(res.Body).Decode(&errRes); err == nil {
-			return &errRes
+			return res, &errRes
 		}
 
 		errRes.Err = ErrorInfo{
 			Message: fmt.Sprintf("unknown error, status code: %d", res.StatusCode),
 		}
-		return &errRes
+		return res, &errRes
 	}
 
 	if err = json.NewDecoder(res.Body).Decode(&v); err != nil {
 		fmt.Println(err)
-		return err
+		return res, err
 	}
-
-	return nil
+	return res, nil
 }
 
 func generateUrl(basePath string, relativePath string) string {
@@ -130,10 +128,10 @@ func generateUrl(basePath string, relativePath string) string {
 	}
 }
 
-func (c *Client) Get(ctx context.Context, path string, headers map[string]string, v interface{}) error {
+func (c *Client) Get(ctx context.Context, path string, headers map[string]string, v interface{}) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, generateUrl(c.BaseURL, path), nil)
 	if err != nil {
-		return err
+		return &http.Response{}, err
 	}
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("Accept", "application/json; charset=utf-8")
@@ -151,21 +149,22 @@ func (c *Client) Get(ctx context.Context, path string, headers map[string]string
 		req.Header.Set(k, v)
 	}
 
-	if err := c.sendRequest(req, v); err != nil {
-		return err
+	resp, err := c.sendRequest(req, v)
+	if err != nil {
+		return &http.Response{}, err
 	}
 
-	return nil
+	return resp, nil
 }
 
-func (c *Client) Post(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) error {
+func (c *Client) Post(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) (*http.Response, error) {
 	postBody, err := json.Marshal(v)
 	if err != nil {
-		return err
+		return &http.Response{}, err
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, generateUrl(c.BaseURL, path), bytes.NewBuffer(postBody))
 	if err != nil {
-		return err
+		return &http.Response{}, err
 	}
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("Accept", "application/json; charset=utf-8")
@@ -183,21 +182,22 @@ func (c *Client) Post(ctx context.Context, path string, headers map[string]strin
 		req.Header.Set(k, v)
 	}
 
-	if err := c.sendRequest(req, res); err != nil {
-		return err
+	resp, err := c.sendRequest(req, res)
+	if err != nil {
+		return &http.Response{}, err
 	}
 
-	return nil
+	return resp, nil
 }
 
-func (c *Client) Put(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) error {
+func (c *Client) Put(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) (*http.Response, error) {
 	postBody, err := json.Marshal(v)
 	if err != nil {
-		return err
+		return &http.Response{}, err
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, generateUrl(c.BaseURL, path), bytes.NewBuffer(postBody))
 	if err != nil {
-		return err
+		return &http.Response{}, err
 	}
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("Accept", "application/json; charset=utf-8")
@@ -215,11 +215,12 @@ func (c *Client) Put(ctx context.Context, path string, headers map[string]string
 		req.Header.Set(k, v)
 	}
 
-	if err := c.sendRequest(req, res); err != nil {
-		return err
+	resp, err := c.sendRequest(req, res)
+	if err != nil {
+		return &http.Response{}, err
 	}
 
-	return nil
+	return resp, nil
 }
 
 type loggingRoundTripper struct {
@@ -229,6 +230,7 @@ type loggingRoundTripper struct {
 
 func (l loggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	presentTime := time.Now()
+	//no lint
 	level.Debug(l.logger).Log("msg", "Initiating call", "path", r.URL.Path, "host", r.URL.Host, string(models.RequestID), r.Header.Get(string(models.RequestID)))
 	res, err := l.next.RoundTrip(r)
 	if err != nil {
