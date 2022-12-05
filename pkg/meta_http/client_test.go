@@ -41,7 +41,9 @@ func TestMetaHTTPClient(t *testing.T) {
 	if res.Goodbye != "World" {
 		t.Error("Response body is not as expected")
 	}
-	t.Log(resp.Status)
+	if resp != nil {
+		t.Log(resp.StatusCode)
+	}
 }
 
 func TestTimeoutScenario(t *testing.T) {
@@ -68,7 +70,9 @@ func TestTimeoutScenario(t *testing.T) {
 	if err == nil {
 		t.Error("Supposed to fail with error")
 	}
-	t.Log(resp.Status)
+	if resp != nil {
+		t.Log(resp.Status)
+	}
 }
 
 func TestContextHeaders(t *testing.T) {
@@ -103,7 +107,9 @@ func TestContextHeaders(t *testing.T) {
 	if res[string(models.UserID)] != "userId" {
 		t.Error("Response body is not as expected")
 	}
-	t.Log(resp.Status)
+	if resp != nil {
+		t.Log(resp.StatusCode)
+	}
 }
 
 func TestHeadersContext(t *testing.T) {
@@ -141,7 +147,9 @@ func TestHeadersContext(t *testing.T) {
 	if res["data"] != "abcd" {
 		t.Error("Response body is not as expected")
 	}
-	t.Log(resp.Status)
+	if resp != nil {
+		t.Log(resp.Status)
+	}
 	res = map[string]string{}
 	resp, err = metaHttpClient.Post(ctx, "/test", map[string]string{}, req, &res)
 	if err != nil {
@@ -150,5 +158,7 @@ func TestHeadersContext(t *testing.T) {
 	if _, ok := res["data"]; ok {
 		t.Error("Data is not as expected")
 	}
-	t.Log(resp.Status)
+	if resp != nil {
+		t.Log(resp.Status)
+	}
 }
