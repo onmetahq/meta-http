@@ -11,6 +11,8 @@ import (
 
 	"github.com/go-kit/log"
 	metahttp "github.com/onmetahq/meta-http/pkg/meta_http"
+	"github.com/onmetahq/meta-http/pkg/models"
+	"github.com/onmetahq/meta-http/pkg/utils"
 )
 
 func TestMetaHTTPClient(t *testing.T) {
@@ -69,9 +71,9 @@ func TestTimeoutScenario(t *testing.T) {
 
 func TestContextHeaders(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		userId := req.Header.Get(string(metahttp.UserID))
+		userId := req.Header.Get(string(models.UserID))
 		res := map[string]string{
-			string(metahttp.UserID): userId,
+			string(models.UserID): userId,
 		}
 		bytes, _ := json.Marshal(res)
 		rw.Write(bytes)
@@ -89,14 +91,14 @@ func TestContextHeaders(t *testing.T) {
 	}
 	var res map[string]string
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, metahttp.UserID, "userId")
-	ctx = context.WithValue(ctx, metahttp.RequestID, "request-id")
+	ctx = context.WithValue(ctx, models.UserID, "userId")
+	ctx = context.WithValue(ctx, models.RequestID, "request-id")
 
 	err := metaHttpClient.Post(ctx, "/test", map[string]string{}, req, &res)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	if res[string(metahttp.UserID)] != "userId" {
+	if res[string(models.UserID)] != "userId" {
 		t.Error("Response body is not as expected")
 	}
 }
@@ -104,8 +106,8 @@ func TestContextHeaders(t *testing.T) {
 func TestHeadersContext(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		res := map[string]string{}
-		ctx := metahttp.FetchContextFromHeaders(context.Background(), req)
-		if userId, ok := ctx.Value(metahttp.UserID).(string); ok {
+		ctx := utils.FetchContextFromHeaders(context.Background(), req)
+		if userId, ok := ctx.Value(models.UserID).(string); ok {
 			res["data"] = userId
 		}
 		bytes, _ := json.Marshal(res)
@@ -126,7 +128,7 @@ func TestHeadersContext(t *testing.T) {
 	ctx := context.Background()
 
 	headers := map[string]string{
-		string(metahttp.UserID): "abcd",
+		string(models.UserID): "abcd",
 	}
 
 	err := metaHttpClient.Post(ctx, "/test", headers, req, &res)

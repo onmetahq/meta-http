@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	"github.com/onmetahq/meta-http/pkg/models"
 	"github.com/onmetahq/meta-http/pkg/utils"
 )
 
@@ -228,13 +229,13 @@ type loggingRoundTripper struct {
 
 func (l loggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	presentTime := time.Now()
-	level.Debug(l.logger).Log("msg", "Initiating call", "path", r.URL.Path, "host", r.URL.Host, string(RequestID), r.Header.Get(string(RequestID)))
+	level.Debug(l.logger).Log("msg", "Initiating call", "path", r.URL.Path, "host", r.URL.Host, string(models.RequestID), r.Header.Get(string(models.RequestID)))
 	res, err := l.next.RoundTrip(r)
 	if err != nil {
-		level.Debug(l.logger).Log("msg", "Call Ended", "path", r.URL.Path, "host", r.URL.Host, "duration", time.Since(presentTime).Milliseconds(), "error", err.Error(), string(RequestID), r.Header.Get(string(RequestID)))
+		level.Debug(l.logger).Log("msg", "Call Ended", "path", r.URL.Path, "host", r.URL.Host, "duration", time.Since(presentTime).Milliseconds(), "error", err.Error(), string(models.RequestID), r.Header.Get(string(models.RequestID)))
 		return nil, err
 	}
-	level.Debug(l.logger).Log("msg", "Call Ended", "path", r.URL.Path, "host", r.URL.Host, "duration", time.Since(presentTime).Milliseconds(), "status", res.StatusCode, string(RequestID), r.Header.Get(string(RequestID)))
+	level.Debug(l.logger).Log("msg", "Call Ended", "path", r.URL.Path, "host", r.URL.Host, "duration", time.Since(presentTime).Milliseconds(), "status", res.StatusCode, string(models.RequestID), r.Header.Get(string(models.RequestID)))
 	return res, err
 }
 
