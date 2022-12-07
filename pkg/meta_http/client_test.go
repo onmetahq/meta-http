@@ -34,12 +34,15 @@ func TestMetaHTTPClient(t *testing.T) {
 	var res struct {
 		Goodbye string
 	}
-	err := metaHttpClient.Post(context.Background(), "/test", map[string]string{}, req, &res)
+	resp, err := metaHttpClient.Post(context.Background(), "/test", map[string]string{}, req, &res)
 	if err != nil {
 		t.Error(err.Error())
 	}
 	if res.Goodbye != "World" {
 		t.Error("Response body is not as expected")
+	}
+	if resp != nil {
+		t.Log(resp.StatusCode)
 	}
 }
 
@@ -63,9 +66,12 @@ func TestTimeoutScenario(t *testing.T) {
 	var res struct {
 		Goodbye string
 	}
-	err := metaHttpClient.Post(context.Background(), "/test", map[string]string{}, req, &res)
+	resp, err := metaHttpClient.Post(context.Background(), "/test", map[string]string{}, req, &res)
 	if err == nil {
 		t.Error("Supposed to fail with error")
+	}
+	if resp != nil {
+		t.Log(resp.Status)
 	}
 }
 
@@ -94,12 +100,15 @@ func TestContextHeaders(t *testing.T) {
 	ctx = context.WithValue(ctx, models.UserID, "userId")
 	ctx = context.WithValue(ctx, models.RequestID, "request-id")
 
-	err := metaHttpClient.Post(ctx, "/test", map[string]string{}, req, &res)
+	resp, err := metaHttpClient.Post(ctx, "/test", map[string]string{}, req, &res)
 	if err != nil {
 		t.Error(err.Error())
 	}
 	if res[string(models.UserID)] != "userId" {
 		t.Error("Response body is not as expected")
+	}
+	if resp != nil {
+		t.Log(resp.StatusCode)
 	}
 }
 
@@ -131,20 +140,25 @@ func TestHeadersContext(t *testing.T) {
 		string(models.UserID): "abcd",
 	}
 
-	err := metaHttpClient.Post(ctx, "/test", headers, req, &res)
+	resp, err := metaHttpClient.Post(ctx, "/test", headers, req, &res)
 	if err != nil {
 		t.Error(err.Error())
 	}
 	if res["data"] != "abcd" {
 		t.Error("Response body is not as expected")
 	}
-
+	if resp != nil {
+		t.Log(resp.Status)
+	}
 	res = map[string]string{}
-	err = metaHttpClient.Post(ctx, "/test", map[string]string{}, req, &res)
+	resp, err = metaHttpClient.Post(ctx, "/test", map[string]string{}, req, &res)
 	if err != nil {
 		t.Error(err.Error())
 	}
 	if _, ok := res["data"]; ok {
 		t.Error("Data is not as expected")
+	}
+	if resp != nil {
+		t.Log(resp.Status)
 	}
 }
