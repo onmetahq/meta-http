@@ -142,6 +142,12 @@ func (c *Client) Get(ctx context.Context, path string, headers map[string]string
 	if err != nil {
 		return nil, err
 	}
+
+	ctxHeaders := utils.FetchHeadersFromContext(ctx)
+	for k, v := range ctxHeaders {
+		req.Header.Set(k, v)
+	}
+
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("Accept", "application/json; charset=utf-8")
 
@@ -150,11 +156,6 @@ func (c *Client) Get(ctx context.Context, path string, headers map[string]string
 	}
 
 	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
-
-	ctxHeaders := utils.FetchHeadersFromContext(ctx)
-	for k, v := range ctxHeaders {
 		req.Header.Set(k, v)
 	}
 
@@ -175,6 +176,12 @@ func (c *Client) Post(ctx context.Context, path string, headers map[string]strin
 	if err != nil {
 		return nil, err
 	}
+
+	ctxHeaders := utils.FetchHeadersFromContext(ctx)
+	for k, v := range ctxHeaders {
+		req.Header.Set(k, v)
+	}
+
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("Accept", "application/json; charset=utf-8")
 
@@ -183,11 +190,6 @@ func (c *Client) Post(ctx context.Context, path string, headers map[string]strin
 	}
 
 	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
-
-	ctxHeaders := utils.FetchHeadersFromContext(ctx)
-	for k, v := range ctxHeaders {
 		req.Header.Set(k, v)
 	}
 
@@ -208,6 +210,12 @@ func (c *Client) Put(ctx context.Context, path string, headers map[string]string
 	if err != nil {
 		return nil, err
 	}
+
+	ctxHeaders := utils.FetchHeadersFromContext(ctx)
+	for k, v := range ctxHeaders {
+		req.Header.Set(k, v)
+	}
+
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("Accept", "application/json; charset=utf-8")
 
@@ -216,11 +224,6 @@ func (c *Client) Put(ctx context.Context, path string, headers map[string]string
 	}
 
 	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
-
-	ctxHeaders := utils.FetchHeadersFromContext(ctx)
-	for k, v := range ctxHeaders {
 		req.Header.Set(k, v)
 	}
 
