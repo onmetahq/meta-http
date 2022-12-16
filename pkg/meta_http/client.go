@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -99,8 +100,9 @@ func (c *Client) sendRequest(req *http.Request, v interface{}) (*models.Response
 			return nil, &errRes
 		}
 
+		body, _ := io.ReadAll(res.Body)
 		errRes.Err = ErrorInfo{
-			Message: fmt.Sprintf("unknown error, status code: %d", res.StatusCode),
+			Message: fmt.Sprintf("unknown error, status code: %d, response: %s", res.StatusCode, string(body)),
 		}
 		return nil, &errRes
 	}
