@@ -108,7 +108,6 @@ func (c *Client) sendRequest(req *http.Request, v interface{}) (*models.Response
 	}
 
 	if err = json.NewDecoder(res.Body).Decode(&v); err != nil {
-		fmt.Println(err)
 		errRes := HttpClientErrorResponse{}
 		errRes.Success = false
 		errRes.StatusCode = http.StatusInternalServerError
