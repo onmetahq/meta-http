@@ -15,21 +15,22 @@ import (
 	"github.com/onmetahq/meta-http/pkg/utils"
 )
 
-type Client struct {
+type Requests interface {
+	SetDefaultHeaders(headers map[string]string)
+	Get(ctx context.Context, path string, headers map[string]string, v interface{}) (*models.ResponseData, error)
+	Post(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) (*models.ResponseData, error)
+	Put(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) (*models.ResponseData, error)
+}
+
+type client struct {
 	BaseURL        string
 	log            log.Logger
 	HTTPClient     *http.Client
 	defaultHeaders map[string]string
 }
 
-type Retry struct {
-	MaxRetries        int
-	DelayBetweenRetry time.Duration
-	Validator         func(int) bool
-}
-
-func NewClient(baseUrl string, log log.Logger, timeout time.Duration) *Client {
-	return &Client{
+func NewClient(baseUrl string, log log.Logger, timeout time.Duration) Requests {
+	return &client{
 		BaseURL: baseUrl,
 		log:     log,
 		HTTPClient: &http.Client{
@@ -42,8 +43,8 @@ func NewClient(baseUrl string, log log.Logger, timeout time.Duration) *Client {
 	}
 }
 
-func NewClientWithRetry(baseUrl string, log log.Logger, timeout time.Duration, retry Retry) *Client {
-	return &Client{
+func NewClientWithRetry(baseUrl string, log log.Logger, timeout time.Duration, retry models.Retry) Requests {
+	return &client{
 		BaseURL: baseUrl,
 		log:     log,
 		HTTPClient: &http.Client{
@@ -61,26 +62,11 @@ func NewClientWithRetry(baseUrl string, log log.Logger, timeout time.Duration, r
 	}
 }
 
-func (c *Client) SetDefaultHeaders(headers map[string]string) {
+func (c *client) SetDefaultHeaders(headers map[string]string) {
 	c.defaultHeaders = headers
 }
 
-type HttpClientErrorResponse struct {
-	Success    bool      `json:"success"`
-	Err        ErrorInfo `json:"error"`
-	StatusCode int       `json:"_"`
-}
-
-type ErrorInfo struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-}
-
-func (hce *HttpClientErrorResponse) Error() string {
-	return fmt.Sprintf("StatusCode: %d, ErrorCode: %d, Message: %s", hce.StatusCode, hce.Err.Code, hce.Err.Message)
-}
-
-func (c *Client) sendRequest(req *http.Request, v interface{}) (*models.ResponseData, error) {
+func (c *client) sendRequest(req *http.Request, v interface{}) (*models.ResponseData, error) {
 	response := models.ResponseData{}
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {
@@ -94,21 +80,21 @@ func (c *Client) sendRequest(req *http.Request, v interface{}) (*models.Response
 	defer res.Body.Close()
 
 	if res.StatusCode < http.StatusOK || res.StatusCode >= http.StatusBadRequest {
-		errRes := HttpClientErrorResponse{}
+		errRes := models.HttpClientErrorResponse{}
 		errRes.StatusCode = res.StatusCode
 		if err = json.NewDecoder(res.Body).Decode(&errRes); err == nil {
 			return nil, &errRes
 		}
 
 		body, _ := io.ReadAll(res.Body)
-		errRes.Err = ErrorInfo{
+		errRes.Err = models.ErrorInfo{
 			Message: fmt.Sprintf("unknown error, status code: %d, response: %s", res.StatusCode, string(body)),
 		}
 		return nil, &errRes
 	}
 
 	if err = json.NewDecoder(res.Body).Decode(&v); err != nil {
-		errRes := HttpClientErrorResponse{}
+		errRes := models.HttpClientErrorResponse{}
 		errRes.Success = false
 		errRes.StatusCode = http.StatusInternalServerError
 		errRes.Err.Message = err.Error()
@@ -138,7 +124,7 @@ func generateUrl(basePath string, relativePath string) string {
 	}
 }
 
-func (c *Client) Get(ctx context.Context, path string, headers map[string]string, v interface{}) (*models.ResponseData, error) {
+func (c *client) Get(ctx context.Context, path string, headers map[string]string, v interface{}) (*models.ResponseData, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, generateUrl(c.BaseURL, path), nil)
 	if err != nil {
 		return nil, err
@@ -168,7 +154,7 @@ func (c *Client) Get(ctx context.Context, path string, headers map[string]string
 	return resp, nil
 }
 
-func (c *Client) Post(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) (*models.ResponseData, error) {
+func (c *client) Post(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) (*models.ResponseData, error) {
 	postBody, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
@@ -202,7 +188,7 @@ func (c *Client) Post(ctx context.Context, path string, headers map[string]strin
 	return resp, nil
 }
 
-func (c *Client) Put(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) (*models.ResponseData, error) {
+func (c *client) Put(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) (*models.ResponseData, error) {
 	postBody, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
