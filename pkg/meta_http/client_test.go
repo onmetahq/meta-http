@@ -119,6 +119,9 @@ func TestHeadersContext(t *testing.T) {
 		if userId, ok := ctx.Value(models.UserID).(string); ok {
 			res["data"] = userId
 		}
+		if forwardedFor, ok := ctx.Value(models.XForwardedFor).(string); ok {
+			res["forward"] = forwardedFor
+		}
 		bytes, _ := json.Marshal(res)
 		rw.Write(bytes)
 	}))
@@ -137,16 +140,22 @@ func TestHeadersContext(t *testing.T) {
 	ctx := context.Background()
 
 	headers := map[string]string{
-		string(models.UserID): "abcd",
+		string(models.UserID):        "abcd",
+		string(models.XForwardedFor): "10.0.9.8",
 	}
 
 	resp, err := metaHttpClient.Post(ctx, "/test", headers, req, &res)
 	if err != nil {
 		t.Error(err.Error())
 	}
+
 	if res["data"] != "abcd" {
 		t.Error("Response body is not as expected")
 	}
+	if res["forward"] != "10.0.9.8" {
+		t.Error("Response body is not as expected")
+	}
+
 	if resp != nil {
 		t.Log(resp.Status)
 	}

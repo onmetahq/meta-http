@@ -15,9 +15,10 @@ const (
 	MerchantAPIKey   contextKey = "x-api-key"
 	APIContextKey    contextKey = "apikey"
 	AuthorizationKey contextKey = "Authorization"
+	XForwardedFor    contextKey = "X-Forwarded-For"
 )
 
-var ContextKeys = []contextKey{UserID, TenantID, RequestID, MerchantAPIKey, APIContextKey, AuthorizationKey}
+var ContextKeys = []contextKey{UserID, TenantID, RequestID, MerchantAPIKey, APIContextKey, AuthorizationKey, XForwardedFor}
 
 type ResponseData struct {
 	Status     string // e.g. "200 OK"
