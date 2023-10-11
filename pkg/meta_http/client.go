@@ -15,11 +15,17 @@ import (
 	"github.com/onmetahq/meta-http/pkg/utils"
 )
 
+type RequestOptions struct {
+	URL     string
+	Timeout time.Duration
+}
+
 type Requests interface {
 	SetDefaultHeaders(headers map[string]string)
 	Get(ctx context.Context, path string, headers map[string]string, v interface{}) (*models.ResponseData, error)
 	Post(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) (*models.ResponseData, error)
 	Put(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) (*models.ResponseData, error)
+	GetConfig() RequestOptions
 }
 
 type client struct {
@@ -220,6 +226,13 @@ func (c *client) Put(ctx context.Context, path string, headers map[string]string
 	}
 
 	return resp, nil
+}
+
+func (c *client) GetConfig() RequestOptions {
+	return RequestOptions{
+		URL:     c.BaseURL,
+		Timeout: c.HTTPClient.Timeout,
+	}
 }
 
 type loggingRoundTripper struct {

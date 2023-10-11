@@ -171,3 +171,23 @@ func TestHeadersContext(t *testing.T) {
 		t.Log(resp.Status)
 	}
 }
+
+func TestGetConfig(t *testing.T) {
+	responseBody := "{\"Goodbye\":\"World\"}"
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		time.Sleep(2 * time.Second)
+		rw.Write([]byte(responseBody))
+	}))
+	defer server.Close()
+
+	logger := log.NewJSONLogger(os.Stderr)
+	logger = log.NewSyncLogger(logger)
+
+	metaHttpClient := metahttp.NewClient(server.URL, logger, 1*time.Second)
+	if metaHttpClient.GetConfig().Timeout != 1*time.Second {
+		t.Error("Timeout is not matching")
+	}
+	if metaHttpClient.GetConfig().URL != server.URL {
+		t.Error("URL is not matching")
+	}
+}
