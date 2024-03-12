@@ -6,11 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
 
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/onmetahq/meta-http/pkg/models"
 	"github.com/onmetahq/meta-http/pkg/utils"
 )
@@ -30,36 +29,33 @@ type Requests interface {
 
 type client struct {
 	BaseURL        string
-	log            log.Logger
 	HTTPClient     *http.Client
 	defaultHeaders map[string]string
 }
 
-func NewClient(baseUrl string, log log.Logger, timeout time.Duration) Requests {
+func NewClient(baseUrl string, log *slog.Logger, timeout time.Duration) Requests {
 	return &client{
 		BaseURL: baseUrl,
-		log:     log,
 		HTTPClient: &http.Client{
 			Transport: &loggingRoundTripper{
 				logger: log,
-				next:   http.DefaultTransport,
+				next:   defaultPooledTransport(),
 			},
 			Timeout: timeout,
 		},
 	}
 }
 
-func NewClientWithRetry(baseUrl string, log log.Logger, timeout time.Duration, retry models.Retry) Requests {
+func NewClientWithRetry(baseUrl string, log *slog.Logger, timeout time.Duration, retry models.Retry) Requests {
 	return &client{
 		BaseURL: baseUrl,
-		log:     log,
 		HTTPClient: &http.Client{
 			Transport: &retryRoundTripper{
 				maxRetries: retry.MaxRetries,
 				delay:      retry.DelayBetweenRetry,
 				next: &loggingRoundTripper{
 					logger: log,
-					next:   http.DefaultTransport,
+					next:   defaultPooledTransport(),
 				},
 				validator: retry.Validator,
 			},
@@ -237,19 +233,37 @@ func (c *client) GetConfig() RequestOptions {
 
 type loggingRoundTripper struct {
 	next   http.RoundTripper
-	logger log.Logger
+	logger *slog.Logger
 }
 
 func (l loggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	presentTime := time.Now()
-	//no lint
-	level.Debug(l.logger).Log("msg", "Initiating call", "path", r.URL.Path, "host", r.URL.Host, string(models.RequestID), r.Header.Get(string(models.RequestID)))
+	l.logger.Debug(
+		"Initiating call",
+		slog.String("path", r.URL.Path),
+		slog.String("host", r.URL.Host),
+		slog.String(string(models.RequestID), r.Header.Get(string(models.RequestID))),
+	)
 	res, err := l.next.RoundTrip(r)
 	if err != nil {
-		level.Debug(l.logger).Log("msg", "Call Ended", "path", r.URL.Path, "host", r.URL.Host, "duration", time.Since(presentTime).Milliseconds(), "error", err.Error(), string(models.RequestID), r.Header.Get(string(models.RequestID)))
+		l.logger.Debug(
+			"Call Ended",
+			slog.String("path", r.URL.Path),
+			slog.String("host", r.URL.Host),
+			slog.Int64("duration", time.Since(presentTime).Milliseconds()),
+			slog.Any("error", err.Error()),
+			slog.String(string(models.RequestID), r.Header.Get(string(models.RequestID))),
+		)
 		return nil, err
 	}
-	level.Debug(l.logger).Log("msg", "Call Ended", "path", r.URL.Path, "host", r.URL.Host, "duration", time.Since(presentTime).Milliseconds(), "status", res.StatusCode, string(models.RequestID), r.Header.Get(string(models.RequestID)))
+	l.logger.Debug(
+		"Call Ended",
+		slog.String("path", r.URL.Path),
+		slog.String("host", r.URL.Host),
+		slog.Int64("duration", time.Since(presentTime).Milliseconds()),
+		slog.Int("status", res.StatusCode),
+		slog.String(string(models.RequestID), r.Header.Get(string(models.RequestID))),
+	)
 	return res, err
 }
 
