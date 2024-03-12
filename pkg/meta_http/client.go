@@ -49,7 +49,6 @@ func NewClient(baseUrl string, log *slog.Logger, timeout time.Duration) Requests
 func NewClientWithRetry(baseUrl string, log *slog.Logger, timeout time.Duration, retry models.Retry) Requests {
 	return &client{
 		BaseURL: baseUrl,
-		// log:     log,
 		HTTPClient: &http.Client{
 			Transport: &retryRoundTripper{
 				maxRetries: retry.MaxRetries,
