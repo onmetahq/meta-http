@@ -3,13 +3,13 @@ package metahttp_test
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/go-kit/log"
 	metahttp "github.com/onmetahq/meta-http/pkg/meta_http"
 	"github.com/onmetahq/meta-http/pkg/models"
 	"github.com/onmetahq/meta-http/pkg/utils"
@@ -22,8 +22,14 @@ func TestMetaHTTPClient(t *testing.T) {
 	}))
 	defer server.Close()
 
-	logger := log.NewJSONLogger(os.Stderr)
-	logger = log.NewSyncLogger(logger)
+	logLevel := &slog.LevelVar{} // INFO
+	logLevel.Set(slog.LevelDebug)
+	opts := &slog.HandlerOptions{
+		AddSource: true,
+		Level:     logLevel,
+	}
+
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, opts))
 
 	metaHttpClient := metahttp.NewClient(server.URL, logger, 10*time.Second)
 	req := struct {
@@ -54,9 +60,7 @@ func TestTimeoutScenario(t *testing.T) {
 	}))
 	defer server.Close()
 
-	logger := log.NewJSONLogger(os.Stderr)
-	logger = log.NewSyncLogger(logger)
-
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	metaHttpClient := metahttp.NewClient(server.URL, logger, 1*time.Second)
 	req := struct {
 		Hello string
@@ -86,8 +90,7 @@ func TestContextHeaders(t *testing.T) {
 	}))
 	defer server.Close()
 
-	logger := log.NewJSONLogger(os.Stderr)
-	logger = log.NewSyncLogger(logger)
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 
 	metaHttpClient := metahttp.NewClient(server.URL, logger, 1*time.Second)
 	req := struct {
@@ -127,8 +130,7 @@ func TestHeadersContext(t *testing.T) {
 	}))
 	defer server.Close()
 
-	logger := log.NewJSONLogger(os.Stderr)
-	logger = log.NewSyncLogger(logger)
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 
 	metaHttpClient := metahttp.NewClient(server.URL, logger, 1*time.Second)
 	req := struct {
@@ -180,8 +182,7 @@ func TestGetConfig(t *testing.T) {
 	}))
 	defer server.Close()
 
-	logger := log.NewJSONLogger(os.Stderr)
-	logger = log.NewSyncLogger(logger)
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 
 	metaHttpClient := metahttp.NewClient(server.URL, logger, 1*time.Second)
 	if metaHttpClient.GetConfig().Timeout != 1*time.Second {
