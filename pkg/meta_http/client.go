@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/onmetahq/meta-http/pkg/models"
@@ -106,6 +107,10 @@ func (c *client) sendRequest(req *http.Request, v interface{}) (*models.Response
 }
 
 func generateUrl(basePath string, relativePath string) string {
+	if len(basePath) == 0 {
+		return relativePath
+	}
+
 	x := basePath[len(basePath)-1]
 	if x == '/' {
 		if relativePath == "" {
@@ -127,7 +132,13 @@ func generateUrl(basePath string, relativePath string) string {
 }
 
 func (c *client) Get(ctx context.Context, path string, headers map[string]string, v interface{}) (*models.ResponseData, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, generateUrl(c.BaseURL, path), nil)
+	ul := generateUrl(c.BaseURL, path)
+	u, err := url.ParseRequestURI(ul)
+	if err != nil || u.Host == "" || u.Scheme == "" {
+		return nil, fmt.Errorf("%w url: %s, err: %v", models.ErrBadURL, ul, err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ul, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -157,11 +168,18 @@ func (c *client) Get(ctx context.Context, path string, headers map[string]string
 }
 
 func (c *client) Post(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) (*models.ResponseData, error) {
+	ul := generateUrl(c.BaseURL, path)
+	u, err := url.ParseRequestURI(ul)
+	if err != nil || u.Host == "" || u.Scheme == "" {
+		return nil, fmt.Errorf("invalid url, url: %s, err: %v", ul, err)
+	}
+
 	postBody, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, generateUrl(c.BaseURL, path), bytes.NewBuffer(postBody))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ul, bytes.NewBuffer(postBody))
 	if err != nil {
 		return nil, err
 	}
@@ -191,11 +209,18 @@ func (c *client) Post(ctx context.Context, path string, headers map[string]strin
 }
 
 func (c *client) Put(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) (*models.ResponseData, error) {
+	ul := generateUrl(c.BaseURL, path)
+	u, err := url.ParseRequestURI(ul)
+	if err != nil || u.Host == "" || u.Scheme == "" {
+		return nil, fmt.Errorf("invalid url, url: %s, err: %v", ul, err)
+	}
+
 	postBody, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, generateUrl(c.BaseURL, path), bytes.NewBuffer(postBody))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, ul, bytes.NewBuffer(postBody))
 	if err != nil {
 		return nil, err
 	}

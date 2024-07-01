@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -46,3 +47,5 @@ type ErrorInfo struct {
 func (hce *HttpClientErrorResponse) Error() string {
 	return fmt.Sprintf("StatusCode: %d, ErrorCode: %d, Message: %s", hce.StatusCode, hce.Err.Code, hce.Err.Message)
 }
+
+var ErrBadURL = errors.New("invalid url")

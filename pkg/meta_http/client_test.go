@@ -3,6 +3,8 @@ package metahttp_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -190,5 +192,85 @@ func TestGetConfig(t *testing.T) {
 	}
 	if metaHttpClient.GetConfig().URL != server.URL {
 		t.Error("URL is not matching")
+	}
+}
+
+func TestMetaHTTPClientWithEmptyBasePath(t *testing.T) {
+	responseBody := "{\"Goodbye\":\"World\"}"
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Write([]byte(responseBody))
+	}))
+	defer server.Close()
+
+	logLevel := &slog.LevelVar{} // INFO
+	logLevel.Set(slog.LevelDebug)
+	opts := &slog.HandlerOptions{
+		AddSource: true,
+		Level:     logLevel,
+	}
+
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, opts))
+
+	metaHttpClient := metahttp.NewClient("", logger, 10*time.Second)
+	req := struct {
+		Hello string
+	}{
+		Hello: "world",
+	}
+	var res struct {
+		Goodbye string
+	}
+
+	ul := fmt.Sprintf("%s/test", server.URL)
+	resp, err := metaHttpClient.Post(context.Background(), ul, map[string]string{}, req, &res)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if res.Goodbye != "World" {
+		t.Error("Response body is not as expected")
+	}
+	if resp != nil {
+		t.Log(resp.StatusCode)
+	}
+}
+
+func TestMetaHTTPClientWithBadURLs(t *testing.T) {
+	logLevel := &slog.LevelVar{} // INFO
+	logLevel.Set(slog.LevelDebug)
+	opts := &slog.HandlerOptions{
+		AddSource: true,
+		Level:     logLevel,
+	}
+
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, opts))
+	metaHttpClient := metahttp.NewClient("", logger, 10*time.Second)
+
+	tcs := []struct {
+		url string
+	}{
+		{
+			url: "",
+		},
+		{
+			url: "asdfsadf",
+		},
+		{
+			url: "http::/google.com",
+		},
+		{
+			url: "http//google.com",
+		},
+	}
+
+	for _, tc := range tcs {
+		var res map[string]any
+		_, err := metaHttpClient.Get(context.Background(), tc.url, map[string]string{}, &res)
+		if err == nil {
+			t.Errorf("should be error but was passed to be a valid url, url: %s", tc.url)
+		}
+
+		if errors.Unwrap(err) != models.ErrBadURL {
+			t.Errorf("not a bad url error, url: %s", tc.url)
+		}
 	}
 }
