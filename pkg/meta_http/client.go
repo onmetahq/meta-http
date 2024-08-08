@@ -86,14 +86,14 @@ func (c *client) sendRequest(req *http.Request, v interface{}) (*models.Response
 		errRes := models.HttpClientErrorResponse{}
 		errRes.StatusCode = res.StatusCode
 		if err = json.NewDecoder(res.Body).Decode(&errRes); err == nil {
-			return nil, &errRes
+			return &response, &errRes
 		}
 
 		body, _ := io.ReadAll(res.Body)
 		errRes.Err = models.ErrorInfo{
 			Message: fmt.Sprintf("unknown error, status code: %d, response: %s", res.StatusCode, string(body)),
 		}
-		return nil, &errRes
+		return &response, &errRes
 	}
 
 	if err = json.NewDecoder(res.Body).Decode(&v); err != nil {
@@ -159,12 +159,7 @@ func (c *client) Get(ctx context.Context, path string, headers map[string]string
 		req.Header.Set(k, v)
 	}
 
-	resp, err := c.sendRequest(req, v)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
+	return c.sendRequest(req, v)
 }
 
 func (c *client) Post(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) (*models.ResponseData, error) {
@@ -200,12 +195,7 @@ func (c *client) Post(ctx context.Context, path string, headers map[string]strin
 		req.Header.Set(k, v)
 	}
 
-	resp, err := c.sendRequest(req, res)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
+	return c.sendRequest(req, res)
 }
 
 func (c *client) Put(ctx context.Context, path string, headers map[string]string, v interface{}, res interface{}) (*models.ResponseData, error) {
@@ -241,12 +231,7 @@ func (c *client) Put(ctx context.Context, path string, headers map[string]string
 		req.Header.Set(k, v)
 	}
 
-	resp, err := c.sendRequest(req, res)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
+	return c.sendRequest(req, res)
 }
 
 func (c *client) GetConfig() RequestOptions {

@@ -274,3 +274,44 @@ func TestMetaHTTPClientWithBadURLs(t *testing.T) {
 		}
 	}
 }
+
+func TestMetaHTTPClientUnAuthorised(t *testing.T) {
+	responseBody := "{\"Goodbye\":\"World\"}"
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(401)
+		rw.Write([]byte(responseBody))
+	}))
+	defer server.Close()
+
+	logLevel := &slog.LevelVar{} // INFO
+	logLevel.Set(slog.LevelDebug)
+	opts := &slog.HandlerOptions{
+		AddSource: true,
+		Level:     logLevel,
+	}
+
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, opts))
+
+	metaHttpClient := metahttp.NewClient(server.URL, logger, 10*time.Second)
+	req := struct {
+		Hello string
+	}{
+		Hello: "world",
+	}
+	var res struct {
+		Goodbye string
+	}
+
+	resp, err := metaHttpClient.Post(context.Background(), "/test", map[string]string{}, req, &res)
+	if err == nil {
+		t.Error("error should be present")
+	}
+
+	if resp == nil {
+		t.Error("response should be present")
+	}
+
+	if resp != nil && resp.StatusCode != 401 {
+		t.Error("invalid status code")
+	}
+}
