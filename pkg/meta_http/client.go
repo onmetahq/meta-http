@@ -85,13 +85,13 @@ func (c *client) sendRequest(req *http.Request, v interface{}) (*models.Response
 	if res.StatusCode < http.StatusOK || res.StatusCode >= http.StatusBadRequest {
 		errRes := models.HttpClientErrorResponse{}
 		errRes.StatusCode = res.StatusCode
-		if err = json.NewDecoder(res.Body).Decode(&errRes); err == nil {
+		b, _ := io.ReadAll(res.Body)
+		if err = json.NewDecoder(bytes.NewReader(b)).Decode(&errRes); err == nil {
 			return &response, &errRes
 		}
 
-		body, _ := io.ReadAll(res.Body)
 		errRes.Err = models.ErrorInfo{
-			Message: fmt.Sprintf("unknown error, status code: %d, response: %s", res.StatusCode, string(body)),
+			Message: fmt.Sprintf("unknown error, status code: %d, response: %s", res.StatusCode, string(b)),
 		}
 		return &response, &errRes
 	}
