@@ -86,7 +86,7 @@ func (c *client) sendRequest(req *http.Request, v interface{}) (*models.Response
 		errRes := models.HttpClientErrorResponse{}
 		errRes.StatusCode = res.StatusCode
 		b, _ := io.ReadAll(res.Body)
-		if err = json.NewDecoder(bytes.NewReader(b)).Decode(&errRes); err == nil {
+		if err = json.NewDecoder(bytes.NewReader(b)).Decode(&errRes); err == nil && errRes.Err.Message != "" {
 			return &response, &errRes
 		}
 
