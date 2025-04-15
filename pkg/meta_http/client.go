@@ -85,13 +85,18 @@ func (c *client) sendRequest(req *http.Request, v interface{}) (*models.Response
 	if res.StatusCode < http.StatusOK || res.StatusCode >= http.StatusBadRequest {
 		errRes := models.HttpClientErrorResponse{}
 		errRes.StatusCode = res.StatusCode
-		b, _ := io.ReadAll(res.Body)
-		if err = json.NewDecoder(bytes.NewReader(b)).Decode(&errRes); err == nil && errRes.Err.Message != "" {
+		errRes.Success = false
+
+		b, err := io.ReadAll(res.Body)
+		if err != nil {
+			errRes.Err = models.ErrorInfo{
+				Message: fmt.Errorf("unable to parse response body: %w", err).Error(),
+			}
 			return &response, &errRes
 		}
 
 		errRes.Err = models.ErrorInfo{
-			Message: fmt.Sprintf("unknown error, status code: %d, response: %s", res.StatusCode, string(b)),
+			Message: string(b),
 		}
 		return &response, &errRes
 	}
