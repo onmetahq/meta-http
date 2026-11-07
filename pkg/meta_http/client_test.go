@@ -368,3 +368,49 @@ func TestMetaHTTPClientInternalServerError(t *testing.T) {
 
 	fmt.Println(httpError.Err.Message)
 }
+
+func TestMetaHTTPClientKeepsStructuredErrorMessage(t *testing.T) {
+	responseBody := `{"success":false,"error":{"code":400,"message":"IP not whitelisted"}}`
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusBadRequest)
+		rw.Write([]byte(responseBody))
+	}))
+	defer server.Close()
+
+	metaHttpClient := metahttp.NewClient(server.URL, slog.Default(), 10*time.Second)
+	var res struct{}
+	_, err := metaHttpClient.Post(context.Background(), "/test", map[string]string{}, struct{}{}, &res)
+	httpError, ok := err.(*models.HttpClientErrorResponse)
+	if !ok {
+		t.Fatalf("error should be HttpClientErrorResponse, got %v", err)
+	}
+	if httpError.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status = %d", httpError.StatusCode)
+	}
+	if httpError.Err.Code != 400 || httpError.Err.Message != "IP not whitelisted" {
+		t.Fatalf("parsed error = %+v", httpError.Err)
+	}
+}
+
+func TestMetaHTTPClientKeepsExactBodyWhenMessageIsNotNested(t *testing.T) {
+	responseBody := `{"error_code":"UNAUTHORIZED_SENDER_IP","message":"Your request from IP 65.2.134.189 was rejected"}`
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusForbidden)
+		rw.Write([]byte(responseBody))
+	}))
+	defer server.Close()
+
+	metaHttpClient := metahttp.NewClient(server.URL, slog.Default(), 10*time.Second)
+	var res struct{}
+	_, err := metaHttpClient.Get(context.Background(), "/test", map[string]string{}, &res)
+	httpError, ok := err.(*models.HttpClientErrorResponse)
+	if !ok {
+		t.Fatalf("error should be HttpClientErrorResponse, got %v", err)
+	}
+	if httpError.StatusCode != http.StatusForbidden {
+		t.Fatalf("status = %d", httpError.StatusCode)
+	}
+	if httpError.Err.Message != responseBody {
+		t.Fatalf("message = %q", httpError.Err.Message)
+	}
+}

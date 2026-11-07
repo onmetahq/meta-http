@@ -87,12 +87,19 @@ func (c *client) sendRequest(req *http.Request, v interface{}) (*models.Response
 		errRes.StatusCode = res.StatusCode
 		errRes.Success = false
 
-		b, err := io.ReadAll(res.Body)
-		if err != nil {
+		b, readErr := io.ReadAll(res.Body)
+		if readErr != nil {
 			errRes.Err = models.ErrorInfo{
-				Message: fmt.Errorf("unable to parse response body: %w", err).Error(),
+				Message: fmt.Errorf("unable to parse response body: %w", readErr).Error(),
 			}
 			return &response, &errRes
+		}
+
+		parsed := models.HttpClientErrorResponse{}
+		if json.Unmarshal(b, &parsed) == nil && parsed.Err.Message != "" {
+			parsed.StatusCode = res.StatusCode
+			parsed.Success = false
+			return &response, &parsed
 		}
 
 		errRes.Err = models.ErrorInfo{
